@@ -1,0 +1,11 @@
+{
+  "name": "naksha-cadastral-system",
+  "version": "2.4.0",
+  "private": true,
+  "description": "National Urban Land Record Management and Multi-Source Geospatial Harmonization System",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview"
+  }
+}
