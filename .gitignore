@@ -49,3 +49,12 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Presentation & Asset Exports (Local Only, Kept on Disk but Excluded from Git)
+extracted_assets/
+slides_exported/
+*.pptx
+*.pdf
+export_slides.py
+generate_presentation.py
+
