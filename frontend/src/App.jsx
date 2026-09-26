@@ -9,24 +9,29 @@ import ConflictWorkbench from "./components/ConflictWorkbench";
 import AttributeWorkbench from "./components/AttributeWorkbench";
 import ElevationWorkbench from "./components/ElevationWorkbench";
 import PassbookModal from "./components/PassbookModal";
+import ImportModal from "./components/ImportModal";
+import HarmonizationProgressModal from "./components/HarmonizationProgressModal";
 import { 
   fetchDataset, 
   runHarmonizationPipeline, 
-  fetchLastHarmonization, 
   resolveConflict,
   fetchAuditReport,
   fetchInterdepartmentalExchange
 } from "./services/api";
-import { Download, FileText, Share2, Award, CheckCircle } from "lucide-react";
+import { Download, FileText, Share2, Award } from "lucide-react";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("map");
   const [isRunning, setIsRunning] = useState(false);
   const [selectedParcel, setSelectedParcel] = useState(null);
   const [passbookKhasra, setPassbookKhasra] = useState(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [currentProject, setCurrentProject] = useState("Sector 48 — Urban Core (Koramangala Ward)");
 
   // Geospatial Multi-Source Datasets
   const [legacyData, setLegacyData] = useState(null);
+  const [droneData, setDroneData] = useState(null);
   const [harmonizedData, setHarmonizedData] = useState(null);
   const [aiBuildings, setAiBuildings] = useState(null);
   const [utilityData, setUtilityData] = useState(null);
@@ -36,15 +41,16 @@ export default function App() {
   const [metrics, setMetrics] = useState(null);
   const [revenueRecords, setRevenueRecords] = useState([]);
 
-  // Initial Data Load
+  // Initial Data Load (Loads source survey layers without pre-baking harmonization)
   useEffect(() => {
     loadAllDatasets();
   }, []);
 
   const loadAllDatasets = async () => {
     try {
-      const [legacy, buildings, utility, muni, cors, rev] = await Promise.all([
+      const [legacy, drone, buildings, utility, muni, cors, rev] = await Promise.all([
         fetchDataset("legacy"),
+        fetchDataset("drone"),
         fetchDataset("buildings"),
         fetchDataset("utility"),
         fetchDataset("muni"),
@@ -53,24 +59,24 @@ export default function App() {
       ]);
 
       setLegacyData(legacy);
+      setDroneData(drone);
       setAiBuildings(buildings);
       setUtilityData(utility);
       setMuniData(muni);
       setCorsData(cors);
       if (rev?.records) setRevenueRecords(rev.records);
 
-      const harmRes = await fetchLastHarmonization();
-      if (harmRes) {
-        setHarmonizedData(harmRes.harmonized_cadastre);
-        setConflicts(harmRes.conflicts || []);
-        setMetrics(harmRes.summary_metrics);
-      }
+      // In a real product, harmonization is executed on-demand, not pre-baked
+      setHarmonizedData(null);
+      setConflicts([]);
+      setMetrics(null);
     } catch (err) {
       console.warn("Could not load backend datasets, using simulated fallback:", err);
     }
   };
 
   const handleRunPipeline = async (customParams = {}) => {
+    setIsProgressModalOpen(true);
     setIsRunning(true);
     try {
       const res = await runHarmonizationPipeline({
@@ -93,6 +99,51 @@ export default function App() {
     } finally {
       setIsRunning(false);
     }
+  };
+
+  const handleImportLayer = (layerType, geoJsonObj, fileName) => {
+    if (layerType === "legacy") {
+      setLegacyData(geoJsonObj);
+    } else if (layerType === "drone") {
+      setDroneData(geoJsonObj);
+    } else if (layerType === "buildings") {
+      setAiBuildings(geoJsonObj);
+    } else if (layerType === "utility") {
+      setUtilityData(geoJsonObj);
+    }
+    setCurrentProject(`Custom Survey (${fileName})`);
+    // Reset harmonized state so user harmonizes their newly imported survey data
+    setHarmonizedData(null);
+    setMetrics(null);
+    setActiveTab("map");
+  };
+
+  const handleClearWorkspace = () => {
+    setLegacyData(null);
+    setDroneData(null);
+    setHarmonizedData(null);
+    setAiBuildings(null);
+    setUtilityData(null);
+    setMuniData(null);
+    setConflicts([]);
+    setMetrics(null);
+    setCurrentProject("Blank Workspace (Awaiting Import)");
+  };
+
+  const handleReloadBenchmark = () => {
+    setCurrentProject("Sector 48 — Urban Core (Koramangala Ward)");
+    loadAllDatasets();
+  };
+
+  const handleExportHarmonized = () => {
+    const dataToExport = harmonizedData || legacyData;
+    if (!dataToExport) return;
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Harmonized_Cadastre_${new Date().toISOString().slice(0, 10)}.geojson`;
+    a.click();
   };
 
   const handleResolveConflict = async (conflictId, chosenOption, notes) => {
@@ -153,7 +204,8 @@ export default function App() {
         onRunPipeline={() => handleRunPipeline()}
         isRunning={isRunning}
         metrics={metrics}
-        activeTab={activeTab}
+        currentProject={currentProject}
+        onOpenImport={() => setIsImportModalOpen(true)}
       />
 
       {/* Navigation Tabs */}
@@ -168,6 +220,7 @@ export default function App() {
         {activeTab === "map" && (
           <MapWorkbench
             legacyData={legacyData}
+            droneData={droneData}
             harmonizedData={harmonizedData}
             aiBuildings={aiBuildings}
             utilityData={utilityData}
@@ -177,6 +230,13 @@ export default function App() {
             selectedParcel={selectedParcel}
             onSelectParcel={setSelectedParcel}
             onOpenPassbook={(khasra) => setPassbookKhasra(khasra)}
+            onRunPipeline={() => handleRunPipeline()}
+            isRunning={isRunning}
+            onOpenImport={() => setIsImportModalOpen(true)}
+            onClearWorkspace={handleClearWorkspace}
+            onReloadBenchmark={handleReloadBenchmark}
+            onExportHarmonized={handleExportHarmonized}
+            currentProject={currentProject}
           />
         )}
 
@@ -206,7 +266,7 @@ export default function App() {
         {activeTab === "attributes" && (
           <AttributeWorkbench
             records={revenueRecords.length > 0 ? revenueRecords : null}
-            onSelectKhasra={(khasra) => {
+            onSelectKhasra={() => {
               setActiveTab("map");
             }}
             onOpenPassbook={(khasra) => setPassbookKhasra(khasra)}
@@ -274,6 +334,21 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportData={handleImportLayer}
+      />
+
+      {/* Harmonization Progress Stepper Modal */}
+      <HarmonizationProgressModal
+        isOpen={isProgressModalOpen}
+        isRunning={isRunning}
+        metrics={metrics}
+        onComplete={() => setIsProgressModalOpen(false)}
+      />
 
       {/* Modal if active on another tab */}
       {passbookKhasra && activeTab !== "passbook" && (
