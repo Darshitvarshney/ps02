@@ -16,7 +16,8 @@ import {
   Maximize2,
   Play,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  FolderOpen
 } from "lucide-react";
 
 export default function MapWorkbench({
@@ -63,6 +64,7 @@ export default function MapWorkbench({
   const [comparisonOpacity, setComparisonOpacity] = useState(0.4);
   const [cursorCoords, setCursorCoords] = useState({ lat: 12.9350, lon: 77.6250 });
 
+  const hasAnyData = Boolean(legacyData?.features?.length || droneData?.features?.length || harmonizedData?.features?.length || aiBuildings?.features?.length);
   const isHarmonized = Boolean(harmonizedData && harmonizedData.features?.length > 0);
 
   // Initialize Map
@@ -368,18 +370,142 @@ export default function MapWorkbench({
       {/* Map Canvas */}
       <div ref={mapContainerRef} style={{ width: "100%", height: "100%", zIndex: 1 }} />
 
-      {/* Top Engineering State Callout Banner */}
+      {/* TOP RIGHT: Dedicated Map Action Toolbar */}
       <div style={{
         position: "absolute",
         top: "14px",
-        left: "50%",
-        transform: "translateX(-50%)",
+        right: selectedParcel ? "334px" : "14px",
         zIndex: 1000,
-        maxWidth: "680px",
-        width: "90%",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        transition: "right 0.2s ease"
+      }}>
+        {/* Upload Custom Survey Button */}
+        {onOpenImport && (
+          <button
+            onClick={onOpenImport}
+            className="btn-primary"
+            title="Upload custom GeoJSON or Shapefile parcel boundaries"
+            style={{
+              padding: "7px 13px",
+              fontSize: "12px",
+              fontWeight: "600",
+              borderRadius: "5px",
+              background: "#0f2e5c",
+              color: "#ffffff",
+              border: "1px solid #0f2e5c",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(15, 46, 92, 0.2)"
+            }}
+          >
+            <Upload size={14} color="#93c5fd" />
+            Upload Custom Survey
+          </button>
+        )}
+
+        {/* Clear Map Button */}
+        {onClearWorkspace && (
+          <button
+            onClick={onClearWorkspace}
+            title="Clear all active layers on the map"
+            style={{
+              padding: "7px 12px",
+              fontSize: "12px",
+              fontWeight: "500",
+              borderRadius: "5px",
+              background: "#ffffff",
+              color: "#b91c1c",
+              border: "1px solid #fca5a5",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)"
+            }}
+          >
+            <Trash2 size={13} color="#dc2626" />
+            Clear Map
+          </button>
+        )}
+
+        {/* Reload Benchmark Sector 48 Button */}
+        {onReloadBenchmark && (
+          <button
+            onClick={onReloadBenchmark}
+            title="Restore Sector 48 benchmark survey"
+            style={{
+              padding: "7px 12px",
+              fontSize: "12px",
+              fontWeight: "500",
+              borderRadius: "5px",
+              background: "#ffffff",
+              color: "#0369a1",
+              border: "1px solid #bae6fd",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)"
+            }}
+          >
+            <RotateCcw size={13} color="#0284c7" />
+            Load Sector 48
+          </button>
+        )}
+
+        {/* Fit Extent Button */}
+        <button
+          onClick={handleFitExtent}
+          title="Zoom to parcel extent"
+          style={{
+            padding: "7px 9px",
+            fontSize: "12px",
+            borderRadius: "5px",
+            background: "#ffffff",
+            color: "#475569",
+            border: "1px solid #cbd5e1",
+            display: "flex",
+            alignItems: "center",
+            cursor: "pointer",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)"
+          }}
+        >
+          <Maximize2 size={13} />
+        </button>
+      </div>
+
+      {/* Top Center Engineering State Banner */}
+      <div style={{
+        position: "absolute",
+        top: "14px",
+        left: "320px",
+        zIndex: 999,
+        maxWidth: "520px",
         boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)"
       }}>
-        {!isHarmonized ? (
+        {!hasAnyData ? (
+          <div style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: "6px",
+            padding: "8px 14px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            fontSize: "12px",
+            color: "#475569"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <FolderOpen size={15} color="#0f2e5c" style={{ flexShrink: 0 }} />
+              <span>Workspace is empty. Click <strong>Upload Custom Survey</strong> or <strong>Load Sector 48</strong>.</span>
+            </div>
+          </div>
+        ) : !isHarmonized ? (
           <div style={{
             background: "#fffbeb",
             border: "1px solid #fde68a",
@@ -393,9 +519,9 @@ export default function MapWorkbench({
             color: "#92400e"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <AlertTriangle size={16} color="#d97706" style={{ flexShrink: 0 }} />
+              <AlertTriangle size={15} color="#d97706" style={{ flexShrink: 0 }} />
               <span>
-                <strong>Raw Multi-Source Survey Loaded:</strong> 1998 Paper Cadastre vs 2026 UAV Drone Survey. Boundary discrepancies detected.
+                <strong>Raw Multi-Source Survey Loaded:</strong> 1998 Paper Cadastre vs 2026 UAV Drone Survey.
               </span>
             </div>
             <button
@@ -417,7 +543,7 @@ export default function MapWorkbench({
               }}
             >
               <Play size={10} fill="#ffffff" />
-              Harmonize Cadastre
+              Harmonize
             </button>
           </div>
         ) : (
@@ -434,9 +560,9 @@ export default function MapWorkbench({
             color: "#166534"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
+              <CheckCircle2 size={15} color="#16a34a" style={{ flexShrink: 0 }} />
               <span>
-                <strong>GeoAI Harmonization Complete:</strong> {harmonizedData.features?.length || 9} Parcels Statutorily Reconciled. Boundary blend slider active.
+                <strong>Harmonization Complete:</strong> {harmonizedData.features?.length || 9} Parcels Reconciled.
               </span>
             </div>
             {onExportHarmonized && (
@@ -447,18 +573,18 @@ export default function MapWorkbench({
                   color: "#ffffff",
                   border: "none",
                   borderRadius: "4px",
-                  padding: "4px 10px",
+                  padding: "4px 9px",
                   fontSize: "11px",
                   fontWeight: "600",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  gap: "5px",
+                  gap: "4px",
                   flexShrink: 0
                 }}
               >
                 <Download size={11} />
-                Export GeoJSON
+                Export
               </button>
             )}
           </div>
@@ -471,9 +597,11 @@ export default function MapWorkbench({
         top: "14px",
         left: "14px",
         zIndex: 1000,
-        width: "290px",
+        width: "295px",
         padding: "14px",
-        background: "#ffffff"
+        background: "#ffffff",
+        maxHeight: "calc(100vh - 165px)",
+        overflowY: "auto"
       }}>
         {/* Panel Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
@@ -483,76 +611,9 @@ export default function MapWorkbench({
               Multi-Source Layers
             </h3>
           </div>
-
-          {/* Quick Toolbar */}
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <button
-              onClick={handleFitExtent}
-              title="Zoom to parcel extent"
-              style={{
-                background: "transparent",
-                border: "1px solid #e2e8f0",
-                borderRadius: "3px",
-                padding: "3px 5px",
-                cursor: "pointer",
-                color: "#64748b",
-                display: "flex"
-              }}
-            >
-              <Maximize2 size={12} />
-            </button>
-            {onOpenImport && (
-              <button
-                onClick={onOpenImport}
-                title="Import GeoJSON layer"
-                style={{
-                  background: "transparent",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "3px",
-                  padding: "3px 5px",
-                  cursor: "pointer",
-                  color: "#0f2e5c",
-                  display: "flex"
-                }}
-              >
-                <Upload size={12} />
-              </button>
-            )}
-            {onClearWorkspace && (
-              <button
-                onClick={onClearWorkspace}
-                title="Clear workspace"
-                style={{
-                  background: "transparent",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "3px",
-                  padding: "3px 5px",
-                  cursor: "pointer",
-                  color: "#94a3b8",
-                  display: "flex"
-                }}
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
-            {onReloadBenchmark && (
-              <button
-                onClick={onReloadBenchmark}
-                title="Reload Sector 48 Benchmark"
-                style={{
-                  background: "transparent",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "3px",
-                  padding: "3px 5px",
-                  cursor: "pointer",
-                  color: "#0369a1",
-                  display: "flex"
-                }}
-              >
-                <RotateCcw size={12} />
-              </button>
-            )}
-          </div>
+          <span style={{ fontSize: "10.5px", color: "#64748b", fontFamily: "var(--font-mono)" }}>
+            {hasAnyData ? "8 Sources" : "Empty"}
+          </span>
         </div>
 
         {/* Basemap Switcher */}
@@ -680,6 +741,86 @@ export default function MapWorkbench({
             style={{ width: "100%", marginTop: "4px", accentColor: "#b45309", cursor: "pointer" }}
           />
         </div>
+
+        {/* DEDICATED DATA MANAGEMENT SECTION AT BOTTOM OF PANEL */}
+        <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "7px" }}>
+          <div style={{ fontSize: "10.5px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Survey Data Management
+          </div>
+
+          {/* Full-width Upload Button */}
+          {onOpenImport && (
+            <button
+              onClick={onOpenImport}
+              style={{
+                width: "100%",
+                padding: "7px 10px",
+                fontSize: "11.5px",
+                fontWeight: "600",
+                borderRadius: "4px",
+                background: "#0f2e5c",
+                color: "#ffffff",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                cursor: "pointer"
+              }}
+            >
+              <Upload size={13} color="#93c5fd" />
+              Upload Custom Survey (GeoJSON)
+            </button>
+          )}
+
+          {/* Side-by-side Clear and Reload */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+            {onClearWorkspace && (
+              <button
+                onClick={onClearWorkspace}
+                style={{
+                  padding: "6px 8px",
+                  fontSize: "11px",
+                  fontWeight: "500",
+                  borderRadius: "4px",
+                  background: "#ffffff",
+                  color: "#b91c1c",
+                  border: "1px solid #fecaca",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "4px",
+                  cursor: "pointer"
+                }}
+              >
+                <Trash2 size={12} color="#dc2626" />
+                Clear Map
+              </button>
+            )}
+            {onReloadBenchmark && (
+              <button
+                onClick={onReloadBenchmark}
+                style={{
+                  padding: "6px 8px",
+                  fontSize: "11px",
+                  fontWeight: "500",
+                  borderRadius: "4px",
+                  background: "#ffffff",
+                  color: "#0369a1",
+                  border: "1px solid #bae6fd",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "4px",
+                  cursor: "pointer"
+                }}
+              >
+                <RotateCcw size={12} color="#0284c7" />
+                Restore Sector 48
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Coordinate & Reference Box (Bottom Left) */}
@@ -771,24 +912,7 @@ export default function MapWorkbench({
             Generate Digital Land Passbook
           </button>
         </div>
-      ) : (
-        <div className="glass-panel" style={{
-          position: "absolute",
-          top: "14px",
-          right: "14px",
-          zIndex: 1000,
-          padding: "7px 12px",
-          fontSize: "11px",
-          color: "#475569",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          background: "#ffffff"
-        }}>
-          <Info size={13} color="#0f2e5c" />
-          <span>Click any parcel boundary to inspect verified cadastral attributes</span>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
