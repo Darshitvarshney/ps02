@@ -5,7 +5,8 @@ from .api.endpoints import router
 app = FastAPI(
     title="GeoAI Cadastral Harmonization Engine",
     description="Automated Integration and Intelligent Harmonization of Multi-source Geospatial Data for Urban Land Record Management (NAKSHA / PS-26013)",
-    version="2.4.0"
+    version="2.4.0",
+    redirect_slashes=False
 )
 
 # Enable CORS for frontend development and production
@@ -17,7 +18,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Support both /api/path and /path in case serverless gateway strips or preserves prefix
 app.include_router(router, prefix="/api")
+app.include_router(router)
 
 @app.on_event("startup")
 def startup_event():
@@ -30,11 +33,14 @@ def startup_event():
 
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/")
 def root():
     return {
         "title": "Automated Multi-source Geospatial Harmonization Platform",
         "problem_statement": "26013",
         "programme": "NAKSHA / Urban Cadastral Modernization",
+        "status": "online",
         "docs_url": "/docs",
         "api_health": "/api/health"
     }

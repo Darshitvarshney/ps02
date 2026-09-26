@@ -5,7 +5,7 @@
   "description": "National Urban Land Record Management and Multi-Source Geospatial Harmonization System",
   "scripts": {
     "dev": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend run build",
+    "build": "cd frontend && npm install && npm run build",
     "preview": "npm --prefix frontend run preview"
   }
 }

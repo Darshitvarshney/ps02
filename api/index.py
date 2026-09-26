@@ -8,10 +8,3 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 from app.main import app
-
-# For AWS Lambda / Serverless container compatibility
-try:
-    from mangum import Mangum
-    handler = Mangum(app)
-except Exception:
-    handler = app
